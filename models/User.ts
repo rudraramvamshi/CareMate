@@ -40,6 +40,7 @@ const ProfileSchema = new Schema(
     address: String,
     bloodGroup: String,
     medicalHistory: [String],
+    mobileNumber: String,
   },
   { _id: false },
 )
