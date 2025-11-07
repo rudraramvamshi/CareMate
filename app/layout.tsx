@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={<div>Loading...</div>}>
-          <SiteHeader />
+          {/* <SiteHeader /> */}
           {children}
         </Suspense>
         <Analytics />
