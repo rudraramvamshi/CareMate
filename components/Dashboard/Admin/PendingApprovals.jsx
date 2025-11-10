@@ -46,7 +46,7 @@ export default function PendingApprovals() {
 
     const handleReject = async (doctorId) => {
         if (!confirm('Are you sure you want to reject this doctor?')) return;
-        
+
         try {
             const response = await fetch(`/api/admin/approve-doctor/${doctorId}`, {
                 method: 'POST',

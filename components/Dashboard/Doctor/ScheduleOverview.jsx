@@ -6,24 +6,24 @@ import Link from 'next/link';
 
 export default function ScheduleOverview() {
     const scheduleTips = [
-        { 
-            title: 'Manage Free Slots', 
-            description: 'Set your available time slots for appointments', 
-            icon: Calendar, 
+        {
+            title: 'Manage Free Slots',
+            description: 'Set your available time slots for appointments',
+            icon: Calendar,
             color: 'text-blue-500',
             bgColor: 'bg-blue-50'
         },
-        { 
-            title: 'Set Busy Hours', 
-            description: 'Block time for breaks and personal tasks', 
-            icon: Coffee, 
+        {
+            title: 'Set Busy Hours',
+            description: 'Block time for breaks and personal tasks',
+            icon: Coffee,
             color: 'text-orange-500',
             bgColor: 'bg-orange-50'
         },
-        { 
-            title: 'Mark Leave Days', 
-            description: 'Schedule your vacations and time off', 
-            icon: Clock, 
+        {
+            title: 'Mark Leave Days',
+            description: 'Schedule your vacations and time off',
+            icon: Clock,
             color: 'text-green-500',
             bgColor: 'bg-green-50'
         }
@@ -33,8 +33,8 @@ export default function ScheduleOverview() {
         <div className="bg-white rounded-xl shadow-sm border p-6">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Schedule Management</h3>
-                <Link 
-                    href="/dashboard/doctor?tab=schedule" 
+                <Link
+                    href="/dashboard/doctor?tab=schedule"
                     className="text-blue-600 text-sm font-medium hover:underline"
                 >
                     Manage Schedule
