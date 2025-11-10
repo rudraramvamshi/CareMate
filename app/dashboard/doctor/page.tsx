@@ -1,7 +1,14 @@
 import DoctorDashboard from './DoctorDashboard'
 import DoctorSchedule from './DoctorSchedule'
+import DoctorSidebar from '@/components/Dashboard/Doctor/Sidebar'
 
 export default function DoctorDashboardPage() {
-  return <DoctorDashboard />
-  // return <DoctorSchedule />
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <DoctorSidebar />
+      <main className="flex-1 ml-64 p-8">
+        <DoctorDashboard />
+      </main>
+    </div>
+  )
 }

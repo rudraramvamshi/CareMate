@@ -2,9 +2,8 @@
 
 import React from 'react';
 import { Calendar, Clock, Coffee } from 'lucide-react';
-import Link from 'next/link';
 
-export default function ScheduleOverview() {
+export default function ScheduleOverview({ onManageClick }) {
     const scheduleTips = [
         {
             title: 'Manage Free Slots',
@@ -33,12 +32,12 @@ export default function ScheduleOverview() {
         <div className="bg-white rounded-xl shadow-sm border p-6">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Schedule Management</h3>
-                <Link
-                    href="/dashboard/doctor?tab=schedule"
-                    className="text-blue-600 text-sm font-medium hover:underline"
+                <button
+                    onClick={onManageClick}
+                    className="text-blue-600 text-sm font-medium hover:underline cursor-pointer"
                 >
                     Manage Schedule
-                </Link>
+                </button>
             </div>
             <div className="space-y-4">
                 {scheduleTips.map((tip, idx) => (

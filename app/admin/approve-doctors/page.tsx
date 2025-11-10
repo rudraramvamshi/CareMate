@@ -3,10 +3,12 @@ import useSWR from "swr"
 import { jsonFetch } from "@/lib/fetcher"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import DashboardLayout from "@/components/DashboardLayout"
+import { UserCheck, GraduationCap, Mail, Phone, CheckCircle, XCircle } from "lucide-react"
 
 export default function ApproveDoctorsPage() {
   const { data, mutate } = useSWR("/api/admin/doctors?isApproved=false&page=1&pageSize=20", (url) => jsonFetch(url))
-  const items = data?.items || []
+  const items = (data as any)?.items || []
 
   async function approve(id: string, approve: boolean) {
     await fetch(`/api/admin/approve-doctor/${id}`, {
@@ -19,27 +21,73 @@ export default function ApproveDoctorsPage() {
   }
 
   return (
-    <main className="max-w-5xl mx-auto p-6 grid gap-4">
-      <h1 className="text-2xl font-semibold">Approve Doctors</h1>
-      {items.map((d: any) => (
-        <Card key={d._id} className="bg-card">
-          <CardHeader>
-            <CardTitle>
-              {d.name?.first} {d.name?.last}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">{d.doctorProfile?.specialization}</div>
-            <div className="flex gap-2">
-              <Button onClick={() => approve(d._id, true)}>Approve</Button>
-              <Button variant="secondary" onClick={() => approve(d._id, false)}>
-                Reject
-              </Button>
+    <DashboardLayout>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Approve Doctors</h1>
+          <p className="text-gray-600 mt-2">Review and approve pending doctor registrations</p>
+        </div>
+
+        <div className="grid gap-4">
+          {items.map((d: any) => (
+            <Card key={d._id} className="bg-white hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <UserCheck className="text-purple-600" size={24} />
+                    <span>{d.name?.first} {d.name?.last}</span>
+                  </CardTitle>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                    Pending Approval
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <GraduationCap size={16} className="text-gray-400" />
+                    <span className="text-gray-700">{d.doctorProfile?.specialization || 'Not specified'}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Mail size={16} className="text-gray-400" />
+                    <span className="text-gray-700">{d.email}</span>
+                  </div>
+                  {d.phone && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Phone size={16} className="text-gray-400" />
+                      <span className="text-gray-700">{d.phone}</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-3 pt-2">
+                  <Button 
+                    onClick={() => approve(d._id, true)}
+                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle size={16} />
+                    <span>Approve</span>
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => approve(d._id, false)}
+                    className="flex items-center space-x-2 bg-red-100 hover:bg-red-200 text-red-700"
+                  >
+                    <XCircle size={16} />
+                    <span>Reject</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {items.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-xl shadow-sm border">
+              <UserCheck size={48} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">No pending doctor approvals.</p>
             </div>
-          </CardContent>
-        </Card>
-      ))}
-      {items.length === 0 ? <p className="text-muted-foreground">No pending doctors.</p> : null}
-    </main>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
   )
 }

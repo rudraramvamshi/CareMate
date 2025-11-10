@@ -1,6 +1,4 @@
 export async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  console.log("called")
-  console.log(url)
   const res = await fetch(url, {
     ...init,
     headers: {

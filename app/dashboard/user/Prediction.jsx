@@ -213,13 +213,16 @@ export default function EnhancedAIChat() {
 
   const toggleBookingForm = (doctor) => {
     const doctorId = doctor._id;
+    const isCurrentlyOpen = bookingDoctors[doctorId];
+    
+    // Toggle the booking form
     setBookingDoctors(prev => ({
       ...prev,
-      [doctorId]: !prev[doctorId]
+      [doctorId]: !isCurrentlyOpen
     }));
 
-    // Initialize form if not exists
-    if (!bookingForms[doctorId]) {
+    // Always reset/initialize form when opening
+    if (!isCurrentlyOpen) {
       setBookingForms(prev => ({
         ...prev,
         [doctorId]: {
@@ -235,7 +238,7 @@ export default function EnhancedAIChat() {
     setBookingForms(prev => ({
       ...prev,
       [doctorId]: {
-        ...prev[doctorId],
+        ...(prev[doctorId] || {}),
         [field]: value
       }
     }));

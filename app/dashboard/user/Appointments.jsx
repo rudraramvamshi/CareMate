@@ -186,7 +186,12 @@ export default function Appointments() {
             </div>
 
             <button
-              onClick={() => setSelectedDoctor(doctor)}
+              onClick={() => {
+                setSelectedDoctor(doctor)
+                setSelectedDate('')
+                setSelectedTime('')
+                setBookingNotes('')
+              }}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition-colors"
             >
               Book Appointment
