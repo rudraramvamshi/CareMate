@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Phone, Video, MoreVertical, Paperclip, Mic, Send, Bot, Plus, Trash2, Calendar, Clock, User, CheckCircle } from 'lucide-react';
+import { Phone, Video, MoreVertical, Paperclip, Mic, Send, Bot, Plus, Trash2, Calendar, Clock, User, CheckCircle, X } from 'lucide-react';
 import dayjs from 'dayjs';
 
 export default function EnhancedAIChat() {
@@ -10,11 +10,9 @@ export default function EnhancedAIChat() {
   const [loading, setLoading] = useState(false);
   const [typing, setTyping] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [bookingDoctor, setBookingDoctor] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [bookingNotes, setBookingNotes] = useState('');
-  const [booking, setBooking] = useState(false);
+  const [bookingDoctors, setBookingDoctors] = useState({}); // Changed to object to track each doctor separately
+  const [bookingForms, setBookingForms] = useState({}); // Separate forms for each doctor
+  const [booking, setBooking] = useState(null); // Track which doctor is being booked
   const messagesEndRef = useRef(null);
 
   const MODEL_API = process.env.NEXT_PUBLIC_MODEL_API || 'https://42tbnklm-5000.inc1.devtunnels.ms';
@@ -28,13 +26,11 @@ export default function EnhancedAIChat() {
   }, [messages]);
 
   useEffect(() => {
-    // Load user info
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => setCurrentUser(data))
       .catch(err => console.error('Error loading user:', err));
 
-    // Load sessions and history
     loadSessions();
     loadHistory();
   }, []);
@@ -215,16 +211,49 @@ export default function EnhancedAIChat() {
     return slots;
   };
 
+  const toggleBookingForm = (doctor) => {
+    const doctorId = doctor._id;
+    setBookingDoctors(prev => ({
+      ...prev,
+      [doctorId]: !prev[doctorId]
+    }));
+
+    // Initialize form if not exists
+    if (!bookingForms[doctorId]) {
+      setBookingForms(prev => ({
+        ...prev,
+        [doctorId]: {
+          selectedDate: '',
+          selectedTime: '',
+          bookingNotes: ''
+        }
+      }));
+    }
+  };
+
+  const updateBookingForm = (doctorId, field, value) => {
+    setBookingForms(prev => ({
+      ...prev,
+      [doctorId]: {
+        ...prev[doctorId],
+        [field]: value
+      }
+    }));
+  };
+
   const handleBookAppointment = async (doctor) => {
-    if (!selectedDate || !selectedTime) {
+    const doctorId = doctor._id;
+    const form = bookingForms[doctorId];
+
+    if (!form?.selectedDate || !form?.selectedTime) {
       alert('Please select date and time');
       return;
     }
 
-    setBooking(true);
+    setBooking(doctorId);
 
-    const startDateTime = dayjs(`${selectedDate} ${selectedTime}`).toISOString();
-    const endDateTime = dayjs(`${selectedDate} ${selectedTime}`).add(30, 'minute').toISOString();
+    const startDateTime = dayjs(`${form.selectedDate} ${form.selectedTime}`).toISOString();
+    const endDateTime = dayjs(`${form.selectedDate} ${form.selectedTime}`).add(30, 'minute').toISOString();
 
     try {
       const response = await fetch('/api/appointments', {
@@ -235,12 +264,11 @@ export default function EnhancedAIChat() {
           doctorId: doctor._id,
           start: startDateTime,
           end: endDateTime,
-          notes: bookingNotes
+          notes: form.bookingNotes
         })
       });
 
       if (response.ok) {
-        // Add confirmation message to chat
         const confirmationMessage = {
           id: Date.now() + 2,
           type: 'ai',
@@ -254,10 +282,20 @@ export default function EnhancedAIChat() {
         };
 
         setMessages(prev => [...prev, confirmationMessage]);
-        setBookingDoctor(null);
-        setSelectedDate('');
-        setSelectedTime('');
-        setBookingNotes('');
+
+        // Reset this doctor's booking state
+        setBookingDoctors(prev => ({
+          ...prev,
+          [doctorId]: false
+        }));
+        setBookingForms(prev => ({
+          ...prev,
+          [doctorId]: {
+            selectedDate: '',
+            selectedTime: '',
+            bookingNotes: ''
+          }
+        }));
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to book appointment');
@@ -266,7 +304,7 @@ export default function EnhancedAIChat() {
       console.error('Error booking appointment:', err);
       alert('Failed to book appointment');
     } finally {
-      setBooking(false);
+      setBooking(null);
     }
   };
 
@@ -321,10 +359,10 @@ export default function EnhancedAIChat() {
                 <div className={`flex-1 ${msg.type === 'user' ? 'flex justify-end' : ''}`}>
                   <div
                     className={`inline-block max-w-2xl ${msg.type === 'user'
-                        ? 'bg-blue-500 text-white rounded-2xl rounded-tr-none'
-                        : msg.isConfirmation
-                          ? 'bg-green-50 border border-green-200 rounded-2xl rounded-tl-none'
-                          : 'bg-white rounded-2xl rounded-tl-none border border-gray-200 shadow-sm'
+                      ? 'bg-blue-500 text-white rounded-2xl rounded-tr-none'
+                      : msg.isConfirmation
+                        ? 'bg-green-50 border border-green-200 rounded-2xl rounded-tl-none'
+                        : 'bg-white rounded-2xl rounded-tl-none border border-gray-200 shadow-sm'
                       } px-4 py-3`}
                   >
                     <p className={`text-sm whitespace-pre-wrap ${msg.isConfirmation ? 'text-green-800' : ''}`}>
@@ -340,113 +378,114 @@ export default function EnhancedAIChat() {
                     {msg.relatedDoctors?.length > 0 && (
                       <div className="mt-4 space-y-2">
                         <p className="text-sm font-semibold text-gray-900 mb-3">Recommended Specialists:</p>
-                        {msg.relatedDoctors.map((doctor, idx) => (
-                          <div key={idx} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-start space-x-3">
-                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <User className="w-6 h-6 text-blue-600" />
-                                </div>
-                                <div>
-                                  <h4 className="font-bold text-gray-900 text-sm">
-                                    Dr. {doctor.name?.first} {doctor.name?.last}
-                                  </h4>
-                                  <p className="text-xs text-teal-600 font-semibold">{doctor.specialization}</p>
-                                  <p className="text-xs text-gray-600 mt-1">
-                                    {doctor.yearsExperience} years experience
-                                  </p>
+                        {msg.relatedDoctors.map((doctor, idx) => {
+                          const doctorId = doctor._id;
+                          const isBookingOpen = bookingDoctors[doctorId];
+                          const form = bookingForms[doctorId] || {};
+
+                          return (
+                            <div key={idx} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-start space-x-3">
+                                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <User className="w-6 h-6 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-gray-900 text-sm">
+                                      Dr. {doctor.name?.first} {doctor.name?.last}
+                                    </h4>
+                                    <p className="text-xs text-teal-600 font-semibold">{doctor.specialization}</p>
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      {doctor.yearsExperience} years experience
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Inline Booking Form */}
-                            {bookingDoctor?._id === doctor._id ? (
-                              <div className="mt-3 space-y-3 bg-white p-4 rounded-lg border border-gray-200">
-                                <div className="grid grid-cols-2 gap-3">
+                              {/* Booking Form */}
+                              {isBookingOpen ? (
+                                <div className="mt-3 space-y-3 bg-white p-4 rounded-lg border border-gray-200">
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        <Calendar size={12} className="inline mr-1" />
+                                        Select Date
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={form.selectedDate || ''}
+                                        onChange={(e) => updateBookingForm(doctorId, 'selectedDate', e.target.value)}
+                                        min={dayjs().format('YYYY-MM-DD')}
+                                        className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        <Clock size={12} className="inline mr-1" />
+                                        Select Time
+                                      </label>
+                                      <select
+                                        value={form.selectedTime || ''}
+                                        onChange={(e) => updateBookingForm(doctorId, 'selectedTime', e.target.value)}
+                                        className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      >
+                                        <option value="">Choose time</option>
+                                        {generateTimeSlots().map(slot => (
+                                          <option key={slot} value={slot}>{slot}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+
                                   <div>
                                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                                      <Calendar size={12} className="inline mr-1" />
-                                      Select Date
+                                      Notes (Optional)
                                     </label>
-                                    <input
-                                      type="date"
-                                      value={selectedDate}
-                                      onChange={(e) => setSelectedDate(e.target.value)}
-                                      min={dayjs().format('YYYY-MM-DD')}
+                                    <textarea
+                                      value={form.bookingNotes || ''}
+                                      onChange={(e) => updateBookingForm(doctorId, 'bookingNotes', e.target.value)}
                                       className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      rows={2}
+                                      placeholder="Any specific concerns..."
                                     />
                                   </div>
 
-                                  <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                      <Clock size={12} className="inline mr-1" />
-                                      Select Time
-                                    </label>
-                                    <select
-                                      value={selectedTime}
-                                      onChange={(e) => setSelectedTime(e.target.value)}
-                                      className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleBookAppointment(doctor)}
+                                      disabled={booking === doctorId || !form.selectedDate || !form.selectedTime}
+                                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                                     >
-                                      <option value="">Choose time</option>
-                                      {generateTimeSlots().map(slot => (
-                                        <option key={slot} value={slot}>{slot}</option>
-                                      ))}
-                                    </select>
+                                      {booking === doctorId ? (
+                                        'Booking...'
+                                      ) : (
+                                        <>
+                                          <CheckCircle size={16} />
+                                          Confirm Booking
+                                        </>
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => toggleBookingForm(doctor)}
+                                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
+                                    >
+                                      <X size={16} />
+                                    </button>
                                   </div>
                                 </div>
-
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                                    Notes (Optional)
-                                  </label>
-                                  <textarea
-                                    value={bookingNotes}
-                                    onChange={(e) => setBookingNotes(e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    rows={2}
-                                    placeholder="Any specific concerns..."
-                                  />
-                                </div>
-
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleBookAppointment(doctor)}
-                                    disabled={booking || !selectedDate || !selectedTime}
-                                    className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                                  >
-                                    {booking ? (
-                                      'Booking...'
-                                    ) : (
-                                      <>
-                                        <CheckCircle size={16} />
-                                        Confirm Booking
-                                      </>
-                                    )}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setBookingDoctor(null);
-                                      setSelectedDate('');
-                                      setSelectedTime('');
-                                      setBookingNotes('');
-                                    }}
-                                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setBookingDoctor(doctor)}
-                                className="w-full mt-2 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2"
-                              >
-                                <Calendar size={16} />
-                                Book Appointment
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                              ) : (
+                                <button
+                                  onClick={() => toggleBookingForm(doctor)}
+                                  className="w-full mt-2 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2"
+                                >
+                                  <Calendar size={16} />
+                                  Book Appointment
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 

@@ -1,50 +1,34 @@
-import { requireAuth } from "@/lib/auth"
-import { connectDB } from "@/lib/db"
-import { User } from "@/models/User"
-import { Appointment } from "@/models/Appointment"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+'use client'
 
-export default async function AdminDashboard() {
-  const auth = await requireAuth(["admin"])
-  if (!auth) return null
+import React from 'react'
+import AdminTopCards from '@/components/Dashboard/Admin/TopCards'
+import PendingApprovals from '@/components/Dashboard/Admin/PendingApprovals'
+import RecentDoctors from '@/components/Dashboard/Admin/RecentDoctors'
+import RecentPatients from '@/components/Dashboard/Admin/RecentPatients'
+import RecentAppointments from '@/components/Dashboard/Admin/RecentAppointments'
+import QuickActions from '@/components/Dashboard/Admin/QuickActions'
 
-  await connectDB()
-  const totalDoctors = await User.countDocuments({ role: "doctor" })
-  const totalPatients = await User.countDocuments({ role: "user" })
-  const since = new Date(Date.now() - 30 * 24 * 3600 * 1000)
-  const totalAppointmentsLast30d = await Appointment.countDocuments({ start: { $gte: since } })
-
+export default function AdminDashboard() {
   return (
-    <main className="max-w-5xl mx-auto p-6 grid gap-6">
-      <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle>Doctors</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl">{totalDoctors}</CardContent>
-        </Card>
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle>Patients</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl">{totalPatients}</CardContent>
-        </Card>
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle>Appointments (30d)</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl">{totalAppointmentsLast30d}</CardContent>
-        </Card>
+    <div>
+      {/* Top Stats Cards */}
+      <AdminTopCards />
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-3 gap-8">
+        {/* Left Column - 2/3 width */}
+        <div className="col-span-2 space-y-8">
+          <PendingApprovals />
+          <RecentDoctors />
+          <RecentPatients />
+        </div>
+
+        {/* Right Column - 1/3 width */}
+        <div className="space-y-6">
+          <QuickActions />
+          <RecentAppointments />
+        </div>
       </div>
-      <div>
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle>Recent Trends</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">Add Recharts line chart here as needed.</CardContent>
-        </Card>
-      </div>
-    </main>
+    </div>
   )
 }
