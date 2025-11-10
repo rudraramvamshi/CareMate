@@ -35,6 +35,7 @@ export default function DoctorSidebar() {
     const navigation = [
         { name: 'Dashboard', href: '/dashboard/doctor', icon: LayoutDashboard, exact: true },
         { name: 'Appointments', href: '/appointments', icon: Calendar, exact: true },
+        { name: 'Slots', href: '/dashboard/doctor/schedule', icon: Activity, exact: false },
         { name: 'Prescriptions', href: '/prescriptions', icon: FileText, exact: true },
         { name: 'Profile', href: '/profile', icon: Settings, exact: true },
     ];
@@ -87,8 +88,8 @@ export default function DoctorSidebar() {
                             key={item.name}
                             href={item.href}
                             className={`flex items-center space-x-3 px-6 py-3 transition-all ${isActive
-                                    ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
-                                    : 'text-gray-600 hover:bg-gray-50'
+                                ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
+                                : 'text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             <item.icon size={20} />

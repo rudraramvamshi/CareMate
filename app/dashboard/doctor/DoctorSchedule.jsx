@@ -51,9 +51,9 @@ export default function DoctorScheduleDashboard() {
         setLoading(true);
         try {
             const [slotsRes, leavesRes, busyRes] = await Promise.all([
-                fetch('/api/doctor/schedule/free-slots', { credentials: 'include' }),
-                fetch('/api/doctor/schedule/leave', { credentials: 'include' }),
-                fetch('/api/doctor/schedule/busy-hours', { credentials: 'include' })
+                fetch('/api/doctors/schedule/free-slots', { credentials: 'include' }),
+                fetch('/api/doctors/schedule/leave', { credentials: 'include' }),
+                fetch('/api/doctors/schedule/busy-hours', { credentials: 'include' })
             ]);
 
             if (slotsRes.ok) setFreeSlots(await slotsRes.json());
@@ -68,7 +68,7 @@ export default function DoctorScheduleDashboard() {
 
     const handleAddSlot = async () => {
         try {
-            const res = await fetch('/api/doctor/schedule/free-slots', {
+            const res = await fetch('/api/doctors/schedule/free-slots', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -89,7 +89,7 @@ export default function DoctorScheduleDashboard() {
     const handleDeleteSlot = async (id) => {
         if (!confirm('Delete this slot?')) return;
         try {
-            const res = await fetch(`/api/doctor/schedule/free-slots?id=${id}`, {
+            const res = await fetch(`/api/doctors/schedule/free-slots?id=${id}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -106,7 +106,7 @@ export default function DoctorScheduleDashboard() {
         }
 
         try {
-            const res = await fetch('/api/doctor/schedule/leave', {
+            const res = await fetch('/api/doctors/schedule/leave', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -127,7 +127,7 @@ export default function DoctorScheduleDashboard() {
     const handleDeleteLeave = async (id) => {
         if (!confirm('Delete this leave?')) return;
         try {
-            const res = await fetch(`/api/doctor/schedule/leave?id=${id}`, {
+            const res = await fetch(`/api/doctors/schedule/leave?id=${id}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -139,7 +139,7 @@ export default function DoctorScheduleDashboard() {
 
     const handleAddBusyHour = async () => {
         try {
-            const res = await fetch('/api/doctor/schedule/busy-hours', {
+            const res = await fetch('/api/doctors/schedule/busy-hours', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -167,7 +167,7 @@ export default function DoctorScheduleDashboard() {
     const handleDeleteBusyHour = async (id) => {
         if (!confirm('Delete this busy hour?')) return;
         try {
-            const res = await fetch(`/api/doctor/schedule/busy-hours?id=${id}`, {
+            const res = await fetch(`/api/doctors/schedule/busy-hours?id=${id}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -201,8 +201,8 @@ export default function DoctorScheduleDashboard() {
                 <button
                     onClick={() => setActiveTab('free-slots')}
                     className={`px-6 py-3 font-medium transition-colors ${activeTab === 'free-slots'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-600 hover:text-gray-800'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-800'
                         }`}
                 >
                     Free Slots
@@ -210,8 +210,8 @@ export default function DoctorScheduleDashboard() {
                 <button
                     onClick={() => setActiveTab('leaves')}
                     className={`px-6 py-3 font-medium transition-colors ${activeTab === 'leaves'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-600 hover:text-gray-800'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-800'
                         }`}
                 >
                     Leaves
@@ -219,8 +219,8 @@ export default function DoctorScheduleDashboard() {
                 <button
                     onClick={() => setActiveTab('busy-hours')}
                     className={`px-6 py-3 font-medium transition-colors ${activeTab === 'busy-hours'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-600 hover:text-gray-800'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-800'
                         }`}
                 >
                     Busy Hours
@@ -390,7 +390,7 @@ export default function DoctorScheduleDashboard() {
             {/* Add Slot Modal */}
             {showSlotModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xl font-bold text-gray-800">Add Free Slot</h3>
                             <button onClick={() => setShowSlotModal(false)} className="text-gray-500 hover:text-gray-700">
