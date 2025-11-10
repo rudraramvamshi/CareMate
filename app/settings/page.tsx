@@ -63,7 +63,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <Button 
+            <Button
               onClick={addReminder}
               disabled={!when || saving}
               className="w-full sm:w-auto"

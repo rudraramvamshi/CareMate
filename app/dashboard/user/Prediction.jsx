@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Phone, Video, MoreVertical, Paperclip, Mic, Send, Bot, Plus, Trash2, Calendar, Clock, User, CheckCircle, X } from 'lucide-react';
+import { Paperclip, Mic, Send, Bot, Plus, Trash2, Calendar, Clock, User, CheckCircle, X } from 'lucide-react';
 import dayjs from 'dayjs';
 
 export default function EnhancedAIChat() {
@@ -10,50 +10,40 @@ export default function EnhancedAIChat() {
   const [loading, setLoading] = useState(false);
   const [typing, setTyping] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [bookingDoctors, setBookingDoctors] = useState({}); // Changed to object to track each doctor separately
-  const [bookingForms, setBookingForms] = useState({}); // Separate forms for each doctor
-  const [booking, setBooking] = useState(null); // Track which doctor is being booked
+
+  // State: store open/close and form data per doctorId!
+  const [bookingDoctors, setBookingDoctors] = useState({});
+  const [bookingForms, setBookingForms] = useState({});
+  const [booking, setBooking] = useState(null);
+
   const messagesEndRef = useRef(null);
 
   const MODEL_API = process.env.NEXT_PUBLIC_MODEL_API || 'https://42tbnklm-5000.inc1.devtunnels.ms';
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => setCurrentUser(data))
-      .catch(err => console.error('Error loading user:', err));
-
+      .catch(err => { });
     loadSessions();
     loadHistory();
   }, []);
 
   const loadSessions = async () => {
     try {
-      const response = await fetch(`${MODEL_API}/api/sessions`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`${MODEL_API}/api/sessions`, { credentials: 'include' });
       const data = await response.json();
-      if (data.success) {
-        setSessions(data.sessions);
-      }
-    } catch (err) {
-      console.error('Error loading sessions:', err);
-    }
+      if (data.success) setSessions(data.sessions);
+    } catch { }
   };
 
   const loadHistory = async () => {
     try {
-      const response = await fetch(`${MODEL_API}/api/history`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`${MODEL_API}/api/history`, { credentials: 'include' });
       const data = await response.json();
       if (data.success) {
         const formattedMessages = data.messages.map(msg => ({
@@ -70,16 +60,12 @@ export default function EnhancedAIChat() {
         }));
         setMessages(formattedMessages);
       }
-    } catch (err) {
-      console.error('Error loading history:', err);
-    }
+    } catch { }
   };
 
   const loadSession = async (sessionId) => {
     try {
-      const response = await fetch(`${MODEL_API}/api/session/${sessionId}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`${MODEL_API}/api/session/${sessionId}`, { credentials: 'include' });
       const data = await response.json();
       if (data.success) {
         setCurrentSessionId(sessionId);
@@ -97,14 +83,11 @@ export default function EnhancedAIChat() {
         }));
         setMessages(formattedMessages);
       }
-    } catch (err) {
-      console.error('Error loading session:', err);
-    }
+    } catch { }
   };
 
   const deleteSession = async (sessionId) => {
-    if (!confirm('Are you sure you want to delete this conversation?')) return;
-
+    if (!window.confirm('Are you sure you want to delete this conversation?')) return;
     try {
       const response = await fetch(`${MODEL_API}/api/session/${sessionId}`, {
         method: 'DELETE',
@@ -118,9 +101,7 @@ export default function EnhancedAIChat() {
           createNewChat();
         }
       }
-    } catch (err) {
-      console.error('Error deleting session:', err);
-    }
+    } catch { }
   };
 
   const createNewChat = async () => {
@@ -135,14 +116,11 @@ export default function EnhancedAIChat() {
         setMessages([]);
         loadSessions();
       }
-    } catch (err) {
-      console.error('Error creating new chat:', err);
-    }
+    } catch { }
   };
 
   const handleSend = async () => {
     if (!message.trim() || loading) return;
-
     const userMessage = {
       id: Date.now(),
       type: 'user',
@@ -153,25 +131,19 @@ export default function EnhancedAIChat() {
         hour12: true
       })
     };
-
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
     setLoading(true);
     setTyping(true);
-
     try {
       const response = await fetch(`${MODEL_API}/api/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ message: message })
       });
-
       const data = await response.json();
       setTyping(false);
-
       if (data.success) {
         const aiMessage = {
           id: Date.now() + 1,
@@ -186,8 +158,7 @@ export default function EnhancedAIChat() {
       } else {
         alert('Failed to get response from AI');
       }
-    } catch (err) {
-      console.error('Error sending message:', err);
+    } catch {
       alert('Failed to send message');
       setTyping(false);
     } finally {
@@ -211,27 +182,22 @@ export default function EnhancedAIChat() {
     return slots;
   };
 
-  const toggleBookingForm = (doctor) => {
-    const doctorId = doctor._id;
-    const isCurrentlyOpen = bookingDoctors[doctorId];
-    
-    // Toggle the booking form
-    setBookingDoctors(prev => ({
+  // Corrected Open/Close + Form Initialization for This Doctor Only
+  const openBookingForm = (doctorId) => {
+    console.log('Opening booking form for doctor:', doctorId);
+    setBookingDoctors(prev => {
+      const updated = { ...prev, [doctorId]: true };
+      console.log('Updated bookingDoctors:', updated);
+      return updated;
+    });
+    setBookingForms(prev => ({
       ...prev,
-      [doctorId]: !isCurrentlyOpen
+      [doctorId]: { selectedDate: '', selectedTime: '', bookingNotes: '' }
     }));
-
-    // Always reset/initialize form when opening
-    if (!isCurrentlyOpen) {
-      setBookingForms(prev => ({
-        ...prev,
-        [doctorId]: {
-          selectedDate: '',
-          selectedTime: '',
-          bookingNotes: ''
-        }
-      }));
-    }
+  };
+  const closeBookingForm = (doctorId) => {
+    console.log('Closing booking form for doctor:', doctorId);
+    setBookingDoctors(prev => ({ ...prev, [doctorId]: false }));
   };
 
   const updateBookingForm = (doctorId, field, value) => {
@@ -244,38 +210,107 @@ export default function EnhancedAIChat() {
     }));
   };
 
-  const handleBookAppointment = async (doctor) => {
-    const doctorId = doctor._id;
-    const form = bookingForms[doctorId];
+  // Try to resolve a doctor object from the ML API to a real doctor _id
+  // by querying our /api/doctors endpoint and matching by name/specialization.
+  const resolveDoctorId = async (doctor) => {
+    // fast-path: check common id fields
+    const quick = doctor._id || doctor.id || doctor.doctor_id || doctor.doctorId;
+    if (quick) return quick;
 
+    try {
+      const spec = (doctor.specialization || '').toString();
+      const url = spec ? `/api/doctors?specialization=${encodeURIComponent(spec)}` : `/api/doctors`;
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) {
+        console.warn('Failed to fetch doctors for resolution', res.status);
+        return null;
+      }
+      const list = await res.json();
+      if (!Array.isArray(list) || list.length === 0) return null;
+
+      const targetName = ((doctor.name?.first || '') + ' ' + (doctor.name?.last || '')).trim().toLowerCase();
+      if (targetName) {
+        // exact full-name match first
+        const exact = list.find(d => (((d.name?.first || '') + ' ' + (d.name?.last || '')).trim().toLowerCase() === targetName));
+        if (exact) return exact._id || exact.id || null;
+
+        // try looser matching (first or last name included)
+        const loose = list.find(d => {
+          const n = ((d.name?.first || '') + ' ' + (d.name?.last || '')).trim().toLowerCase();
+          return n.includes(targetName) || targetName.includes(n) || (d.doctorProfile?.specialization || '').toLowerCase() === spec.toLowerCase();
+        });
+        if (loose) return loose._id || loose.id || null;
+      }
+
+      // fallback: return first doctor in the same specialization (best-effort)
+      const first = list[0];
+      return first?._id || first?.id || null;
+    } catch (err) {
+      console.error('Error resolving doctor id:', err);
+      return null;
+    }
+  };
+
+  const handleBookAppointment = async (doctor, uniqueDoctorId) => {
+    const form = bookingForms[uniqueDoctorId];
     if (!form?.selectedDate || !form?.selectedTime) {
       alert('Please select date and time');
       return;
     }
-
-    setBooking(doctorId);
-
+    
+    // Extract the actual doctor ID - try multiple possible field names
+    // If it's missing, attempt to resolve via our /api/doctors endpoint (best-effort)
+    let actualDoctorId = doctor._id || doctor.id || doctor.doctor_id || doctor.doctorId;
+    if (!actualDoctorId) {
+      console.log('No direct doctor ID available from ML result, attempting to resolve by name/specialization...');
+      actualDoctorId = await resolveDoctorId(doctor);
+      if (!actualDoctorId) {
+        console.error('Unable to resolve doctor from ML response:', doctor);
+        // show a user-friendly message with an action
+        if (confirm('Unable to locate the recommended doctor in the system. Would you like to browse all doctors to pick one?')) {
+          window.location.href = '/doctors';
+        }
+        return;
+      }
+      console.log('Resolved doctor ID to:', actualDoctorId);
+    }
+    
+    console.log('Booking appointment with:', {
+      doctorId: actualDoctorId,
+      doctorName: `${doctor.name?.first || ''} ${doctor.name?.last || ''}`,
+      date: form.selectedDate,
+      time: form.selectedTime
+    });
+    
+    setBooking(uniqueDoctorId);
     const startDateTime = dayjs(`${form.selectedDate} ${form.selectedTime}`).toISOString();
     const endDateTime = dayjs(`${form.selectedDate} ${form.selectedTime}`).add(30, 'minute').toISOString();
-
+    
+    const requestBody = {
+      doctorId: actualDoctorId.toString(), // Ensure it's a string
+      start: startDateTime,
+      end: endDateTime,
+      notes: form.bookingNotes || ''
+    };
+    
+    console.log('Sending booking request:', requestBody);
+    
     try {
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          doctorId: doctor._id,
-          start: startDateTime,
-          end: endDateTime,
-          notes: form.bookingNotes
-        })
+        body: JSON.stringify(requestBody)
       });
-
+      
+      const responseData = await response.json();
+      console.log('Booking response:', responseData);
+      
       if (response.ok) {
         const confirmationMessage = {
           id: Date.now() + 2,
           type: 'ai',
-          text: `✅ Appointment booked successfully with Dr. ${doctor.name.first} ${doctor.name.last} on ${dayjs(startDateTime).format('MMMM DD, YYYY')} at ${dayjs(startDateTime).format('h:mm A')}. You will receive a confirmation email shortly.`,
+          text: `✅ Appointment booked successfully with Dr. ${doctor.name?.first || ''} ${doctor.name?.last || ''} on ${dayjs(startDateTime).format('MMMM DD, YYYY')} at ${dayjs(startDateTime).format('h:mm A')}. You will receive a confirmation email shortly.`,
           time: new Date().toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
@@ -283,29 +318,19 @@ export default function EnhancedAIChat() {
           }),
           isConfirmation: true
         };
-
         setMessages(prev => [...prev, confirmationMessage]);
-
-        // Reset this doctor's booking state
-        setBookingDoctors(prev => ({
-          ...prev,
-          [doctorId]: false
-        }));
+        closeBookingForm(uniqueDoctorId);
         setBookingForms(prev => ({
           ...prev,
-          [doctorId]: {
-            selectedDate: '',
-            selectedTime: '',
-            bookingNotes: ''
-          }
+          [uniqueDoctorId]: { selectedDate: '', selectedTime: '', bookingNotes: '' }
         }));
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to book appointment');
+        console.error('Booking failed. Response:', responseData);
+        alert(responseData.error || responseData.message || 'Failed to book appointment');
       }
     } catch (err) {
-      console.error('Error booking appointment:', err);
-      alert('Failed to book appointment');
+      console.error('Booking error:', err);
+      alert('Failed to book appointment. Please try again.');
     } finally {
       setBooking(null);
     }
@@ -336,7 +361,6 @@ export default function EnhancedAIChat() {
             </button>
           </div>
         </div>
-
         {/* Messages Container */}
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -371,23 +395,29 @@ export default function EnhancedAIChat() {
                     <p className={`text-sm whitespace-pre-wrap ${msg.isConfirmation ? 'text-green-800' : ''}`}>
                       {msg.text}
                     </p>
-
                     {msg.source && (
                       <div className="mt-2 pt-2 border-t border-gray-200">
                         <p className="text-xs text-gray-500">Source: {msg.source}</p>
                       </div>
                     )}
-
+                    {/* CORRECTED DOCTOR MAPPING: ONLY OPENS ONE FORM */}
                     {msg.relatedDoctors?.length > 0 && (
                       <div className="mt-4 space-y-2">
                         <p className="text-sm font-semibold text-gray-900 mb-3">Recommended Specialists:</p>
-                        {msg.relatedDoctors.map((doctor, idx) => {
-                          const doctorId = doctor._id;
-                          const isBookingOpen = bookingDoctors[doctorId];
+                        {msg.relatedDoctors.map((doctor, doctorIndex) => {
+                          // Log the doctor object to see its structure
+                          console.log('Doctor object:', doctor);
+                          
+                          // Try different possible ID fields
+                          const actualId = doctor._id || doctor.id || doctor.doctorId;
+                          const doctorId = actualId || `doctor-${msg.id}-${doctorIndex}`;
+                          
+                          console.log('Using doctorId:', doctorId, 'for doctor:', doctor.name);
+                          
+                          const isBookingOpen = !!bookingDoctors[doctorId];
                           const form = bookingForms[doctorId] || {};
-
                           return (
-                            <div key={idx} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+                            <div key={doctorId} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-start space-x-3">
                                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -404,8 +434,6 @@ export default function EnhancedAIChat() {
                                   </div>
                                 </div>
                               </div>
-
-                              {/* Booking Form */}
                               {isBookingOpen ? (
                                 <div className="mt-3 space-y-3 bg-white p-4 rounded-lg border border-gray-200">
                                   <div className="grid grid-cols-2 gap-3">
@@ -422,7 +450,6 @@ export default function EnhancedAIChat() {
                                         className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                       />
                                     </div>
-
                                     <div>
                                       <label className="block text-xs font-medium text-gray-700 mb-1">
                                         <Clock size={12} className="inline mr-1" />
@@ -440,7 +467,6 @@ export default function EnhancedAIChat() {
                                       </select>
                                     </div>
                                   </div>
-
                                   <div>
                                     <label className="block text-xs font-medium text-gray-700 mb-1">
                                       Notes (Optional)
@@ -453,10 +479,9 @@ export default function EnhancedAIChat() {
                                       placeholder="Any specific concerns..."
                                     />
                                   </div>
-
                                   <div className="flex gap-2">
                                     <button
-                                      onClick={() => handleBookAppointment(doctor)}
+                                      onClick={() => handleBookAppointment(doctor, doctorId)}
                                       disabled={booking === doctorId || !form.selectedDate || !form.selectedTime}
                                       className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                                     >
@@ -470,7 +495,7 @@ export default function EnhancedAIChat() {
                                       )}
                                     </button>
                                     <button
-                                      onClick={() => toggleBookingForm(doctor)}
+                                      onClick={() => closeBookingForm(doctorId)}
                                       className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
                                     >
                                       <X size={16} />
@@ -479,7 +504,7 @@ export default function EnhancedAIChat() {
                                 </div>
                               ) : (
                                 <button
-                                  onClick={() => toggleBookingForm(doctor)}
+                                  onClick={() => openBookingForm(doctorId)}
                                   className="w-full mt-2 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2"
                                 >
                                   <Calendar size={16} />
@@ -491,7 +516,6 @@ export default function EnhancedAIChat() {
                         })}
                       </div>
                     )}
-
                     {msg.time && (
                       <p className={`text-xs mt-2 ${msg.type === 'user' ? 'opacity-80' : 'text-gray-500'}`}>
                         {msg.time}
@@ -501,7 +525,6 @@ export default function EnhancedAIChat() {
                 </div>
               </div>
             ))}
-
             {typing && (
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -516,11 +539,9 @@ export default function EnhancedAIChat() {
                 </div>
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
         </div>
-
         {/* Input */}
         <div className="bg-white border-t border-gray-200 px-6 py-4 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -549,13 +570,11 @@ export default function EnhancedAIChat() {
           </div>
         </div>
       </div>
-
       {/* Sidebar */}
       <div className="w-80 bg-white border-l border-gray-200 flex flex-col min-h-0 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <h3 className="font-semibold text-gray-900">Recent Conversations</h3>
         </div>
-
         <div className="flex-1 overflow-y-auto min-h-0">
           {sessions.length === 0 ? (
             <div className="p-6 text-center text-gray-500 text-sm">
@@ -577,7 +596,7 @@ export default function EnhancedAIChat() {
                       {new Date(session.last_active).toLocaleDateString()}
                     </span>
                     <button
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         deleteSession(session.session_id);
                       }}

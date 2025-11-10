@@ -25,7 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     // Don't show sidebar for user dashboard pages
     const isUserDashboard = pathname?.startsWith('/dashboard/user');
-    
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">

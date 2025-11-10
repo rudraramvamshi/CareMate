@@ -11,7 +11,7 @@ export default function MyPrescriptionsPage() {
   const { user } = useUser()
   const { data } = useSWR(user?._id ? `/api/prescriptions/${user._id}` : null, (url) => jsonFetch(url))
   const items = (data as any[]) || []
-  
+
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto">
@@ -44,7 +44,7 @@ export default function MyPrescriptionsPage() {
                     )}
                   </div>
                 </div>
-                
+
                 {p.medications && p.medications.length > 0 && (
                   <div>
                     <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center space-x-2">

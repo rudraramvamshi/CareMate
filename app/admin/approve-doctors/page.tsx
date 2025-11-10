@@ -59,17 +59,17 @@ export default function ApproveDoctorsPage() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex gap-3 pt-2">
-                  <Button 
+                  <Button
                     onClick={() => approve(d._id, true)}
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
                   >
                     <CheckCircle size={16} />
                     <span>Approve</span>
                   </Button>
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     onClick={() => approve(d._id, false)}
                     className="flex items-center space-x-2 bg-red-100 hover:bg-red-200 text-red-700"
                   >

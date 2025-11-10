@@ -29,9 +29,9 @@ export default function ProfilePage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           phone,
-          profile: { ...((data as any)?.profile || {}), address } 
+          profile: { ...((data as any)?.profile || {}), address }
         }),
       })
       await mutate()
@@ -75,11 +75,10 @@ export default function ProfilePage() {
             <div>
               <h2 className="text-2xl font-bold text-gray-800">{getUserName()}</h2>
               <p className="text-gray-500">{user.email}</p>
-              <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${
-                user.role === 'doctor' ? 'bg-blue-100 text-blue-700' :
-                user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                'bg-green-100 text-green-700'
-              }`}>
+              <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${user.role === 'doctor' ? 'bg-blue-100 text-blue-700' :
+                  user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                    'bg-green-100 text-green-700'
+                }`}>
                 {user.role === 'doctor' ? 'Doctor' : user.role === 'admin' ? 'Admin' : 'Patient'}
               </span>
             </div>
@@ -101,9 +100,9 @@ export default function ProfilePage() {
                 <Phone size={16} />
                 <span>Phone Number</span>
               </label>
-              <Input 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter phone number"
               />
             </div>
@@ -113,9 +112,9 @@ export default function ProfilePage() {
                 <MapPin size={16} />
                 <span>Address</span>
               </label>
-              <Input 
-                value={address} 
-                onChange={(e) => setAddress(e.target.value)} 
+              <Input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
                 placeholder="Enter your address"
               />
             </div>
@@ -123,8 +122,8 @@ export default function ProfilePage() {
 
           {/* Save Button */}
           <div className="pt-4">
-            <Button 
-              onClick={save} 
+            <Button
+              onClick={save}
               disabled={saving}
               className="w-full sm:w-auto flex items-center space-x-2"
             >

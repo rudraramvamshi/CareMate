@@ -9,7 +9,7 @@ import { Calendar, Clock, User } from "lucide-react"
 export default function MyAppointmentsPage() {
   const { data } = useSWR("/api/appointments", (url) => jsonFetch(url))
   const items = (data as any[]) || []
-  
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       confirmed: 'bg-green-100 text-green-700',

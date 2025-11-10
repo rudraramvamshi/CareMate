@@ -80,19 +80,18 @@ export default function AdminSidebar() {
             {/* Navigation */}
             <nav className="flex-1 py-4 overflow-y-auto">
                 {navigation.map((item) => {
-                    const isActive = item.exact 
-                        ? pathname === item.href 
+                    const isActive = item.exact
+                        ? pathname === item.href
                         : pathname.startsWith(item.href);
 
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
-                            className={`flex items-center space-x-3 px-6 py-3 transition-all ${
-                                isActive
+                            className={`flex items-center space-x-3 px-6 py-3 transition-all ${isActive
                                     ? 'bg-purple-50 text-purple-600 border-r-4 border-purple-600'
                                     : 'text-gray-600 hover:bg-gray-50'
-                            }`}
+                                }`}
                         >
                             <item.icon size={20} />
                             <span className="font-medium">{item.name}</span>
