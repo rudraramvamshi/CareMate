@@ -257,7 +257,7 @@ export default function EnhancedAIChat() {
       alert('Please select date and time');
       return;
     }
-    
+
     // Extract the actual doctor ID - try multiple possible field names
     // If it's missing, attempt to resolve via our /api/doctors endpoint (best-effort)
     let actualDoctorId = doctor._id || doctor.id || doctor.doctor_id || doctor.doctorId;
@@ -274,27 +274,27 @@ export default function EnhancedAIChat() {
       }
       console.log('Resolved doctor ID to:', actualDoctorId);
     }
-    
+
     console.log('Booking appointment with:', {
       doctorId: actualDoctorId,
       doctorName: `${doctor.name?.first || ''} ${doctor.name?.last || ''}`,
       date: form.selectedDate,
       time: form.selectedTime
     });
-    
+
     setBooking(uniqueDoctorId);
     const startDateTime = dayjs(`${form.selectedDate} ${form.selectedTime}`).toISOString();
     const endDateTime = dayjs(`${form.selectedDate} ${form.selectedTime}`).add(30, 'minute').toISOString();
-    
+
     const requestBody = {
       doctorId: actualDoctorId.toString(), // Ensure it's a string
       start: startDateTime,
       end: endDateTime,
       notes: form.bookingNotes || ''
     };
-    
+
     console.log('Sending booking request:', requestBody);
-    
+
     try {
       const response = await fetch('/api/appointments', {
         method: 'POST',
@@ -302,10 +302,10 @@ export default function EnhancedAIChat() {
         credentials: 'include',
         body: JSON.stringify(requestBody)
       });
-      
+
       const responseData = await response.json();
       console.log('Booking response:', responseData);
-      
+
       if (response.ok) {
         const confirmationMessage = {
           id: Date.now() + 2,
@@ -407,13 +407,13 @@ export default function EnhancedAIChat() {
                         {msg.relatedDoctors.map((doctor, doctorIndex) => {
                           // Log the doctor object to see its structure
                           console.log('Doctor object:', doctor);
-                          
+
                           // Try different possible ID fields
                           const actualId = doctor._id || doctor.id || doctor.doctorId;
                           const doctorId = actualId || `doctor-${msg.id}-${doctorIndex}`;
-                          
+
                           console.log('Using doctorId:', doctorId, 'for doctor:', doctor.name);
-                          
+
                           const isBookingOpen = !!bookingDoctors[doctorId];
                           const form = bookingForms[doctorId] || {};
                           return (
