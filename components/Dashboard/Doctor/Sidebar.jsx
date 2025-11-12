@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
     LayoutDashboard,
     Calendar,
@@ -16,8 +16,11 @@ import {
 
 export default function DoctorSidebar() {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const activeTabParam = searchParams?.get('tab') || 'dashboard';
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // no initial loading flash — render profile section when user is available
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -34,11 +37,11 @@ export default function DoctorSidebar() {
     }, []);
 
     const navigation = [
-        { name: 'Dashboard', href: '/dashboard/doctor', icon: LayoutDashboard, exact: true },
-        { name: 'Appointments', href: '/appointments', icon: Calendar, exact: true },
-        { name: 'Slots', href: '/dashboard/doctor/schedule', icon: Activity, exact: false },
-        { name: 'Prescriptions', href: '/prescriptions', icon: FileText, exact: true },
-        { name: 'Profile', href: '/profile', icon: Settings, exact: true },
+        { id: 'dashboard', name: 'Dashboard', href: '/dashboard/doctor?tab=dashboard', icon: LayoutDashboard },
+        { id: 'appointments', name: 'Appointments', href: '/dashboard/doctor?tab=appointments', icon: Calendar },
+        { id: 'slots', name: 'Slots', href: '/dashboard/doctor?tab=schedule', icon: Activity },
+        { id: 'prescriptions', name: 'Prescriptions', href: '/dashboard/doctor?tab=prescriptions', icon: FileText },
+        { id: 'profile', name: 'Profile', href: '/dashboard/doctor?tab=profile', icon: Settings },
     ];
 
     const getInitials = (name) => {
@@ -80,9 +83,7 @@ export default function DoctorSidebar() {
             {/* Navigation */}
             <nav className="flex-1 py-4 overflow-y-auto">
                 {navigation.map((item) => {
-                    const isActive = item.exact
-                        ? pathname === item.href
-                        : pathname.startsWith(item.href);
+                    const isActive = activeTabParam === (item.id || 'dashboard');
 
                     return (
                         <Link
@@ -102,11 +103,7 @@ export default function DoctorSidebar() {
 
             {/* User Profile Section */}
             <div className="border-t border-gray-100">
-                {loading ? (
-                    <div className="p-4 text-center">
-                        <p className="text-sm text-gray-500">Loading...</p>
-                    </div>
-                ) : user ? (
+                {user ? (
                     <div className="p-4">
                         <div className="flex items-center space-x-3 mb-3">
                             <div className="relative">
