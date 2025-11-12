@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import DashboardLayout from "@/components/DashboardLayout"
 import { Calendar, Clock, User } from "lucide-react"
 
-export function AppointmentsContent() {
+export function AppointmentsPanel() {
   const { data } = useSWR("/api/appointments", (url) => jsonFetch(url))
   const items = (data as any[]) || []
 
@@ -68,7 +68,7 @@ export function AppointmentsContent() {
 export default function MyAppointmentsPage() {
   return (
     <DashboardLayout>
-      <AppointmentsContent />
+      <AppointmentsPanel />
     </DashboardLayout>
   )
 }

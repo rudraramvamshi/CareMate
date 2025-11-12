@@ -4,9 +4,9 @@ import DoctorDashboard from './DoctorDashboard'
 import DoctorSchedule from './DoctorSchedule'
 import DashboardLayout from '@/components/DashboardLayout'
 import { useSearchParams } from 'next/navigation'
-import AppointmentsPage from '../../appointments/page'
-import PrescriptionsPage from '../../prescriptions/page'
-import ProfilePage from '../../profile/page'
+import { AppointmentsPanel } from '../../appointments/page'
+import { PrescriptionsPanel } from '../../prescriptions/page'
+import { ProfilePanel } from '../../profile/page'
 
 export default function DoctorDashboardPage() {
   const searchParams = useSearchParams()
@@ -14,9 +14,9 @@ export default function DoctorDashboardPage() {
 
   let Content: any = DoctorDashboard
   if (tab === 'schedule') Content = DoctorSchedule
-  else if (tab === 'appointments') Content = AppointmentsPage
-  else if (tab === 'prescriptions') Content = PrescriptionsPage
-  else if (tab === 'profile') Content = ProfilePage
+  else if (tab === 'appointments') Content = AppointmentsPanel
+  else if (tab === 'prescriptions') Content = PrescriptionsPanel
+  else if (tab === 'profile') Content = ProfilePanel
 
   return (
     <DashboardLayout>
