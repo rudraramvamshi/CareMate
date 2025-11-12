@@ -21,7 +21,11 @@ export async function connectDB() {
       .then((m) => m)
       .catch((err) => {
         console.error("[lib/db] Mongo connect error:", err)
-        throw err
+        console.error("[lib/db] Hint: check your MONGODB_URI, network/DNS, and whether mongodb+srv DNS lookups are allowed from this environment.")
+        const e: any = new Error('MongoDB connection failed')
+        e.original = err
+        e.isDbConnectionError = true
+        throw e
       })
   }
   cached.conn = await cached.promise

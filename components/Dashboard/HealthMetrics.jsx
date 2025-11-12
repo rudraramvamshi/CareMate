@@ -1,15 +1,28 @@
 'use client'
 
-import React from 'react';
-import { Activity, Heart, Weight } from 'lucide-react';
+import React from 'react'
+import { Activity, Heart, Weight } from 'lucide-react'
+import { useUser } from '@/hooks/use-user'
 
 export default function HealthMetrics() {
+    const { user } = useUser()
+
+    const hs = user?.healthStats || user?.profile?.healthStats || {}
+
+    const s = hs.bloodPressure?.systolic
+    const d = hs.bloodPressure?.diastolic
+    let bpStr = '—'
+    if (s !== undefined && s !== null && d !== undefined && d !== null) bpStr = `${s}/${d} mmHg`
+    else if (s !== undefined && s !== null) bpStr = `${s} mmHg`
+    else if (d !== undefined && d !== null) bpStr = `${d} mmHg`
+
     const healthMetrics = [
-        { label: 'Blood Pressure', value: '120/80', icon: Activity, color: 'text-red-500' },
-        { label: 'Heart Rate', value: '72 BPM', icon: Heart, color: 'text-pink-500' },
-        { label: 'BMI', value: '22.5', icon: Activity, color: 'text-blue-500' },
-        { label: 'Weight', value: '65 kg', icon: Weight, color: 'text-purple-500' }
-    ];
+        { label: 'Blood Pressure', value: bpStr, icon: Activity, color: 'text-red-500' },
+        { label: 'Heart Rate', value: hs.heartRate?.value ? `${hs.heartRate.value} BPM` : '—', icon: Heart, color: 'text-pink-500' },
+        { label: 'BMI', value: hs.bmi?.value ? String(hs.bmi.value) : '—', icon: Activity, color: 'text-blue-500' },
+        { label: 'Weight', value: hs.weight?.value ? `${hs.weight.value} kg` : '—', icon: Weight, color: 'text-purple-500' },
+        { label: 'Height', value: hs.height?.value ? `${hs.height.value} cm` : '—', icon: Activity, color: 'text-teal-500' }
+    ]
 
     return (
         <div className="bg-white rounded-xl shadow-sm border p-6">
@@ -26,5 +39,5 @@ export default function HealthMetrics() {
                 ))}
             </div>
         </div>
-    );
+    )
 }

@@ -7,6 +7,7 @@ import { Bell, Settings as SettingsIcon } from "lucide-react"
 
 export default function SettingsPage() {
   const { user } = useUser()
+  const userId = (user as any)?.id || (user as any)?._id
   const [when, setWhen] = useState<string>("")
   const [saving, setSaving] = useState(false)
 
@@ -19,16 +20,17 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          userId: user._id,
+          userId: userId,
           medicineName: "Vitamin D",
           schedule: [new Date(when).toISOString()],
           active: true,
         }),
       })
-      alert("Reminder saved successfully!")
+      // minimal success UX
+      console.log('Reminder saved')
       setWhen("")
     } catch (err) {
-      alert("Failed to save reminder")
+      console.error('Failed to save reminder', err)
     } finally {
       setSaving(false)
     }

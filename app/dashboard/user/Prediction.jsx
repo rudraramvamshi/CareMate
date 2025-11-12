@@ -25,10 +25,15 @@ export default function EnhancedAIChat() {
   }, [messages]);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => setCurrentUser(data))
-      .catch(err => { });
+    (async () => {
+      try {
+        const { jsonFetch } = await import('@/lib/fetcher')
+        const data = await jsonFetch('/api/auth/me')
+        setCurrentUser(data)
+      } catch (e) {
+        // ignore
+      }
+    })()
     loadSessions();
     loadHistory();
   }, []);

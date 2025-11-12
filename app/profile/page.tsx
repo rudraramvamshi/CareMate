@@ -10,10 +10,12 @@ import { User, Mail, Phone, MapPin, Save } from "lucide-react"
 
 export default function ProfilePage() {
   const { user } = useUser()
-  const { data, mutate } = useSWR(user?._id ? `/api/users/${user._id}` : null, (url) => jsonFetch(url))
+  const userId = (user as any)?.id || (user as any)?._id
+  const { data, mutate } = useSWR(userId ? `/api/users/${userId}` : null, (url) => jsonFetch(url))
   const [address, setAddress] = useState("")
   const [phone, setPhone] = useState("")
   const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState({ message: '', type: 'info', visible: false })
 
   useEffect(() => {
     if (data) {
@@ -25,19 +27,24 @@ export default function ProfilePage() {
   async function save() {
     setSaving(true)
     try {
-      await fetch(`/api/users/${user._id}`, {
+      if (!userId) throw new Error('Not authenticated')
+      const payload = {
+        phone,
+        profile: { ...((data as any)?.profile || {}), address }
+      }
+      console.log('[profile/page] Sending PUT payload:', payload)
+      await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          phone,
-          profile: { ...((data as any)?.profile || {}), address }
-        }),
+        body: JSON.stringify(payload),
       })
       await mutate()
-      alert("Profile updated successfully!")
+      setToast({ message: 'Profile updated successfully!', type: 'success', visible: true })
+      setTimeout(() => setToast({ message: '', type: 'success', visible: false }), 3000)
     } catch (err) {
-      alert("Failed to update profile")
+      setToast({ message: 'Failed to update profile', type: 'error', visible: true })
+      setTimeout(() => setToast({ message: '', type: 'error', visible: false }), 3000)
     } finally {
       setSaving(false)
     }
@@ -59,6 +66,11 @@ export default function ProfilePage() {
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto">
+        {toast.visible && (
+          <div className={`fixed top-6 right-6 z-50 px-4 py-2 rounded shadow-lg ${toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+            {toast.message}
+          </div>
+        )}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Profile Settings</h1>
           <p className="text-gray-600 mt-2">Manage your personal information</p>
@@ -76,8 +88,8 @@ export default function ProfilePage() {
               <h2 className="text-2xl font-bold text-gray-800">{getUserName()}</h2>
               <p className="text-gray-500">{user.email}</p>
               <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${user.role === 'doctor' ? 'bg-blue-100 text-blue-700' :
-                  user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                    'bg-green-100 text-green-700'
+                user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                  'bg-green-100 text-green-700'
                 }`}>
                 {user.role === 'doctor' ? 'Doctor' : user.role === 'admin' ? 'Admin' : 'Patient'}
               </span>

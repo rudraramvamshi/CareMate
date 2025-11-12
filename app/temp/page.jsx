@@ -109,7 +109,7 @@ export default function HealthCareDashboard() {
                             <div className="flex items-center space-x-3">
                                 <div className="text-right">
                                     <p className="text-sm font-medium text-gray-800">Sarah Johnson</p>
-                                    <p className="text-xs text-gray-500">Patient ID: #12345</p>
+                                    <p className="text-xs text-gray-500">Sarah Johnson</p>
                                 </div>
                                 <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
                                     SJ

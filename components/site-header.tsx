@@ -7,6 +7,15 @@ import { Bell } from 'lucide-react'
 export default async function SiteHeader() {
   const user = await getCurrentUser()
 
+  const getUserName = (u: any) => {
+    if (!u) return 'User'
+    if (typeof u.name === 'string') return u.name
+    const first = u.name?.first || ''
+    const last = u.name?.last || ''
+    const combined = `${first} ${last}`.trim()
+    return combined || u.email || 'User'
+  }
+
   return (
     <header className="w-full bg-white shadow-sm border-b">
       <div className="px-8 py-4 flex justify-between items-center">
@@ -71,9 +80,9 @@ export default async function SiteHeader() {
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-800">{user.name}</p>
                   <p className="text-xs text-gray-500">
-                    {user.role === 'admin' ? `Admin ID: #${user.id}` :
-                      user.role === 'doctor' ? `Doctor ID: #${user.id}` :
-                        `Patient ID: #${user.id}`}
+                    {user.role === 'admin' ? `Admin: ${getUserName(user)}` :
+                      user.role === 'doctor' ? `Doctor: ${getUserName(user)}` :
+                        `${getUserName(user)}`}
                   </p>
                 </div>
                 <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">

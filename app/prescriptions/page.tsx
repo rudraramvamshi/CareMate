@@ -9,7 +9,8 @@ import dayjs from "dayjs"
 
 export default function MyPrescriptionsPage() {
   const { user } = useUser()
-  const { data } = useSWR(user?._id ? `/api/prescriptions/${user._id}` : null, (url) => jsonFetch(url))
+  const userId = (user as any)?.id || (user as any)?._id
+  const { data } = useSWR(userId ? `/api/prescriptions/${userId}` : null, (url) => jsonFetch(url))
   const items = (data as any[]) || []
 
   return (

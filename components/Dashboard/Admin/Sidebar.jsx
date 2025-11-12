@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
+import { jsonFetch } from '@/lib/fetcher';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -20,8 +21,7 @@ export default function AdminSidebar() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('/api/auth/me')
-            .then(res => res.json())
+        jsonFetch('/api/auth/me')
             .then(data => {
                 setUser(data);
                 setLoading(false);
@@ -89,8 +89,8 @@ export default function AdminSidebar() {
                             key={item.name}
                             href={item.href}
                             className={`flex items-center space-x-3 px-6 py-3 transition-all ${isActive
-                                    ? 'bg-purple-50 text-purple-600 border-r-4 border-purple-600'
-                                    : 'text-gray-600 hover:bg-gray-50'
+                                ? 'bg-purple-50 text-purple-600 border-r-4 border-purple-600'
+                                : 'text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             <item.icon size={20} />

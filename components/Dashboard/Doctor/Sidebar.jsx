@@ -20,16 +20,17 @@ export default function DoctorSidebar() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('/api/auth/me')
-            .then(res => res.json())
-            .then(data => {
-                setUser(data);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error('Error fetching user:', err);
-                setLoading(false);
-            });
+        (async () => {
+            try {
+                const { jsonFetch } = await import('@/lib/fetcher')
+                const data = await jsonFetch('/api/auth/me')
+                setUser(data)
+            } catch (err) {
+                console.error('Error fetching user:', err)
+            } finally {
+                setLoading(false)
+            }
+        })()
     }, []);
 
     const navigation = [

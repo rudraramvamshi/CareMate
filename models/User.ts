@@ -41,6 +41,13 @@ const ProfileSchema = new Schema(
     bloodGroup: String,
     medicalHistory: [String],
     mobileNumber: String,
+    // healthStats moved to top-level but keep placeholder here for backwards compatibility
+    // Note: units are standardized and not stored. Only numeric values/status are persisted.
+    healthStats: {
+      bmi: { value: Number, status: String },
+      heartRate: { value: Number },
+      bloodPressure: { systolic: Number, diastolic: Number }
+    }
   },
   { _id: false },
 )
@@ -54,6 +61,17 @@ const UserSchema = new Schema(
     phone: String,
     avatarUrl: String,
     profile: ProfileSchema,
+    // summary of key vitals and stats for users
+    // Units are standardized (bpm for heart rate, mmHg for blood pressure) and not stored in DB.
+    healthStats: {
+      bmi: { value: Number, status: String },
+      heartRate: { value: Number },
+      bloodPressure: { systolic: Number, diastolic: Number },
+      // optional weight in kilograms (no units stored)
+      weight: { value: Number },
+      // optional height in centimeters (used to compute BMI on the server/client)
+      height: { value: Number }
+    },
     isVerified: { type: Boolean, default: false },
     doctorProfile: DoctorProfileSchema,
   },
@@ -74,6 +92,8 @@ export type IUser = {
     address?: string
     bloodGroup?: string
     medicalHistory?: string[]
+    height?: number
+    weight?: number
   }
   isVerified: boolean
   doctorProfile?: {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { jsonFetch } from '@/lib/fetcher';
 import { Activity, Calendar, FileText, User, LogOut, Settings, Brain, Bell } from 'lucide-react';
 import MainDashboard from './Dashboard';
 import Prediction from './Prediction';
@@ -13,8 +14,7 @@ export default function DashboardLayout() {
     const [loading, setLoading] = useState(true);
 
     React.useEffect(() => {
-        fetch('/api/auth/me')
-            .then(res => res.json())
+        jsonFetch('/api/auth/me')
             .then(data => {
                 setUser(data);
                 setLoading(false);
@@ -91,8 +91,8 @@ export default function DashboardLayout() {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center space-x-3 px-6 py-3 text-left transition-all ${activeTab === item.id
-                                    ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
-                                    : 'text-gray-600 hover:bg-gray-50'
+                                ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
+                                : 'text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             <item.icon size={20} />

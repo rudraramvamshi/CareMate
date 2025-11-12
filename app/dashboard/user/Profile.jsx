@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { jsonFetch } from '@/lib/fetcher'
 import { User, Mail, Phone, MapPin, Calendar, Droplet, Edit, Heart, Activity, FileText, AlertCircle, Pill, Shield } from 'lucide-react'
 
 export default function Profile() {
   const [user, setUser] = useState(null)
+  const [toast, setToast] = useState({ message: '', type: 'info', visible: false })
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
@@ -21,9 +23,11 @@ export default function Profile() {
 
   // Mock health stats - replace with real data from backend
   const [healthStats, setHealthStats] = useState({
-    bmi: { value: 22.5, status: 'Normal' },
-    heartRate: { value: 72, unit: 'bpm' },
-    bloodPressure: { value: '120/80', unit: 'mmHg' }
+    bmi: { value: undefined, status: '' },
+    heartRate: { value: undefined },
+    bloodPressure: { systolic: undefined, diastolic: undefined },
+    weight: { value: undefined },
+    height: { value: undefined }
   })
 
   // Mock appointments - replace with real data from backend
@@ -48,21 +52,70 @@ export default function Profile() {
 
   useEffect(() => {
     // Get current user info
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => {
-        setUser(data)
-        if (data.profile) {
+    jsonFetch('/api/auth/me')
+      .then(async (authData) => {
+        if (!authData?.id) {
+          setLoading(false)
+          return
+        }
+        // fetch full user record to get name object and profile
+        const res = await fetch(`/api/users/${authData.id}`, { credentials: 'include' })
+        const full = await res.json()
+        // normalize to include id (auth/me uses id, full doc has _id)
+        setUser({ ...full, id: full._id ? String(full._id) : full.id })
+        // load health stats if present
+        const hs = full.healthStats || full.profile?.healthStats
+        if (hs) {
+          // support both old and new shapes: bloodPressure as string '120/80' or object { systolic, diastolic }
+          let bp = { systolic: undefined, diastolic: undefined }
+          if (hs.bloodPressure) {
+            if (typeof hs.bloodPressure === 'string') {
+              const parts = hs.bloodPressure.split('/').map(p => parseInt(p, 10))
+              bp.systolic = Number.isFinite(parts[0]) ? parts[0] : undefined
+              bp.diastolic = Number.isFinite(parts[1]) ? parts[1] : undefined
+            } else if (typeof hs.bloodPressure === 'object') {
+              // preferred: numeric fields
+              const s = hs.bloodPressure.systolic !== undefined && hs.bloodPressure.systolic !== null ? Number(hs.bloodPressure.systolic) : undefined
+              const d = hs.bloodPressure.diastolic !== undefined && hs.bloodPressure.diastolic !== null ? Number(hs.bloodPressure.diastolic) : undefined
+              if (s !== undefined || d !== undefined) {
+                bp.systolic = Number.isFinite(s) ? s : undefined
+                bp.diastolic = Number.isFinite(d) ? d : undefined
+              } else if (hs.bloodPressure.value && typeof hs.bloodPressure.value === 'string') {
+                const parts = hs.bloodPressure.value.split('/').map(p => parseInt(p, 10))
+                bp.systolic = Number.isFinite(parts[0]) ? parts[0] : undefined
+                bp.diastolic = Number.isFinite(parts[1]) ? parts[1] : undefined
+              }
+            }
+          }
+          setHealthStats({
+            bmi: { value: hs.bmi?.value !== undefined ? hs.bmi.value : undefined, status: hs.bmi?.status || '' },
+            heartRate: { value: hs.heartRate?.value !== undefined ? hs.heartRate.value : undefined },
+            bloodPressure: { systolic: typeof bp.systolic === 'number' ? bp.systolic : undefined, diastolic: typeof bp.diastolic === 'number' ? bp.diastolic : undefined },
+            weight: { value: hs.weight?.value !== undefined ? hs.weight.value : undefined },
+            height: { value: hs.height?.value !== undefined ? hs.height.value : undefined }
+          })
+        }
+        if (full.profile) {
           setFormData({
-            age: data.profile.age || '',
-            gender: data.profile.gender || 'male',
-            address: data.profile.address || '',
-            bloodGroup: data.profile.bloodGroup || '',
-            phone: data.phone || '',
-            dateOfBirth: data.profile.dateOfBirth || '',
-            allergies: data.profile.allergies || [],
-            conditions: data.profile.conditions || [],
-            medications: data.profile.medications || []
+            ...formData,
+            age: full.profile.age || '',
+            gender: full.profile.gender || 'male',
+            address: full.profile.address || '',
+            bloodGroup: full.profile.bloodGroup || '',
+            phone: full.phone || '',
+            dateOfBirth: full.profile.dateOfBirth || '',
+            allergies: full.profile.allergies || [],
+            conditions: full.profile.conditions || [],
+            medications: full.profile.medications || [],
+            firstName: full.name?.first || '',
+            lastName: full.name?.last || ''
+          })
+        } else {
+          setFormData({
+            ...formData,
+            phone: full.phone || '',
+            firstName: full.name?.first || '',
+            lastName: full.name?.last || ''
           })
         }
         setLoading(false)
@@ -73,41 +126,100 @@ export default function Profile() {
       })
   }, [])
 
+  const getUserName = (userObj) => {
+    if (!userObj) return 'User'
+    // auth/me returns name as string in some places, or { first, last } in others
+    if (typeof userObj.name === 'string') return userObj.name
+    const first = userObj.name?.first || ''
+    const last = userObj.name?.last || ''
+    const combined = `${first} ${last}`.trim()
+    return combined || userObj.email || 'User'
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!user) return
 
+    // Client-side validation for name
+    const first = (formData.firstName || '').trim()
+    const last = (formData.lastName || '').trim()
+    if (!first || !last) {
+      setToast({ message: 'Please provide both first and last name.', type: 'error', visible: true })
+      setTimeout(() => setToast({ message: '', type: 'error', visible: false }), 3500)
+      return
+    }
+
     try {
+      // compute BMI from height(cm) and weight(kg) if provided
+      const weightVal = healthStats.weight?.value ? Number(healthStats.weight.value) : undefined
+      const heightVal = healthStats.height?.value ? Number(healthStats.height.value) : undefined
+      let bmiVal = healthStats.bmi?.value ? Number(healthStats.bmi.value) : undefined
+      let bmiStatus = healthStats.bmi?.status || undefined
+      if (weightVal && heightVal) {
+        const meters = heightVal / 100
+        if (meters > 0) {
+          bmiVal = Number((weightVal / (meters * meters)).toFixed(1))
+          if (bmiVal < 18.5) bmiStatus = 'Underweight'
+          else if (bmiVal < 25) bmiStatus = 'Normal'
+          else if (bmiVal < 30) bmiStatus = 'Overweight'
+          else bmiStatus = 'Obese'
+        }
+      }
+
+      const payload = {
+        name: {
+          first: formData.firstName || undefined,
+          last: formData.lastName || undefined
+        },
+        profile: {
+          age: parseInt(formData.age) || undefined,
+          gender: formData.gender,
+          address: formData.address,
+          bloodGroup: formData.bloodGroup,
+          dateOfBirth: formData.dateOfBirth,
+          allergies: formData.allergies,
+          conditions: formData.conditions,
+          medications: formData.medications
+        },
+        phone: formData.phone,
+        healthStats: {
+          bmi: { value: bmiVal || undefined, status: bmiStatus || undefined },
+          heartRate: { value: Number(healthStats.heartRate?.value) || undefined },
+          bloodPressure: { systolic: Number(healthStats.bloodPressure?.systolic) || undefined, diastolic: Number(healthStats.bloodPressure?.diastolic) || undefined },
+          weight: { value: weightVal || undefined },
+          height: { value: heightVal || undefined }
+        }
+      }
+      console.log('[Profile.jsx] Sending PUT payload:', payload)
       const response = await fetch(`/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profile: {
-            age: parseInt(formData.age) || undefined,
-            gender: formData.gender,
-            address: formData.address,
-            bloodGroup: formData.bloodGroup,
-            dateOfBirth: formData.dateOfBirth,
-            allergies: formData.allergies,
-            conditions: formData.conditions,
-            medications: formData.medications
-          },
-          phone: formData.phone
-        })
+        credentials: 'include',
+        body: JSON.stringify(payload)
       })
 
       if (response.ok) {
-        alert('Profile updated successfully!')
+        setToast({ message: 'Profile updated successfully!', type: 'success', visible: true })
         setEditing(false)
-        // Refresh user data
-        const userData = await fetch('/api/auth/me').then(res => res.json())
-        setUser(userData)
+        // Refresh full user document
+        try {
+          const authData = await (await import('@/lib/fetcher')).jsonFetch('/api/auth/me')
+          if (authData?.id) {
+            const full = await fetch(`/api/users/${authData.id}`).then(r => r.json())
+            setUser({ ...full, id: full._id ? String(full._id) : authData.id })
+          }
+        } catch (e) {
+          // fallback: leave user as-is
+        }
+        setTimeout(() => setToast({ message: '', type: 'success', visible: false }), 3000)
       } else {
-        alert('Failed to update profile')
+        setToast({ message: 'Failed to update profile', type: 'error', visible: true })
+        setTimeout(() => setToast({ message: '', type: 'error', visible: false }), 3500)
       }
     } catch (err) {
       console.error('Error updating profile:', err)
-      alert('Failed to update profile')
+      setToast({ message: 'Failed to update profile', type: 'error', visible: true })
+      setTimeout(() => setToast({ message: '', type: 'error', visible: false }), 3500)
     }
   }
 
@@ -137,6 +249,12 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* Simple toast */}
+      {toast.visible && (
+        <div className={`fixed top-6 right-6 z-50 px-4 py-2 rounded shadow-lg ${toast.type === 'success' ? 'bg-green-500 text-white' : toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'}`}>
+          {toast.message}
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         {/* Header Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -149,8 +267,8 @@ export default function Profile() {
                 <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{user.name?.first} {user.name?.last}</h1>
-                <p className="text-sm text-gray-600">Patient ID: {user._id?.slice(-8).toUpperCase()}</p>
+                <h1 className="text-2xl font-bold text-gray-900">{getUserName(user)}</h1>
+                <p className="text-sm text-gray-600">{getUserName(user)}</p>
               </div>
             </div>
             {!editing && (
@@ -180,7 +298,7 @@ export default function Profile() {
                   <div>
                     <label className="text-sm text-gray-600 mb-1 block">Full Name</label>
                     <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
-                      {user.name?.first} {user.name?.last}
+                      {getUserName(user)}
                     </div>
                   </div>
                   <div>
@@ -213,6 +331,26 @@ export default function Profile() {
                       {user.email}
                     </div>
                   </div>
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1 block">Weight</label>
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                      {healthStats.weight?.value ? `${healthStats.weight.value} kg` : 'Not provided'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1 block">Height</label>
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                      {healthStats.height?.value ? `${healthStats.height.value} cm` : 'Not provided'}
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm text-gray-600 mb-1 block">Blood Pressure</label>
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                      {(healthStats.bloodPressure?.systolic !== undefined && healthStats.bloodPressure?.diastolic !== undefined)
+                        ? `${healthStats.bloodPressure.systolic}/${healthStats.bloodPressure.diastolic} mmHg`
+                        : (healthStats.bloodPressure?.systolic !== undefined ? `${healthStats.bloodPressure.systolic} mmHg` : (healthStats.bloodPressure?.diastolic !== undefined ? `${healthStats.bloodPressure.diastolic} mmHg` : 'Not provided'))}
+                    </div>
+                  </div>
                   <div className="col-span-2">
                     <label className="text-sm text-gray-600 mb-1 block">Address</label>
                     <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
@@ -222,6 +360,28 @@ export default function Profile() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                      <input
+                        type="text"
+                        value={formData.firstName || ''}
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="First name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                      <input
+                        type="text"
+                        value={formData.lastName || ''}
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Last name"
+                      />
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
@@ -344,7 +504,7 @@ export default function Profile() {
             {/* Health Statistics */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Health Statistics</h2>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
                   <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -353,9 +513,9 @@ export default function Profile() {
                   <div className="flex-1">
                     <p className="text-xs text-gray-600">BMI</p>
                     <p className="text-lg font-bold text-gray-900">
-                      {healthStats.bmi.value}{' '}
+                      {healthStats.bmi.value || '—'}{' '}
                       <span className="text-sm text-green-600 font-normal">
-                        ({healthStats.bmi.status})
+                        ({healthStats.bmi.status || '—'})
                       </span>
                     </p>
                   </div>
@@ -368,7 +528,7 @@ export default function Profile() {
                   <div className="flex-1">
                     <p className="text-xs text-gray-600">Heart Rate</p>
                     <p className="text-lg font-bold text-gray-900">
-                      {healthStats.heartRate.value} {healthStats.heartRate.unit}
+                      {healthStats.heartRate.value || '—'} <span className="text-sm text-gray-500">bpm</span>
                     </p>
                   </div>
                 </div>
@@ -380,10 +540,59 @@ export default function Profile() {
                   <div className="flex-1">
                     <p className="text-xs text-gray-600">Blood Pressure</p>
                     <p className="text-lg font-bold text-gray-900">
-                      {healthStats.bloodPressure.value} {healthStats.bloodPressure.unit}
+                      {(healthStats.bloodPressure.systolic || healthStats.bloodPressure.diastolic) ? `${healthStats.bloodPressure.systolic || '—'}/${healthStats.bloodPressure.diastolic || '—'}` : '—'} <span className="text-sm text-gray-500">mmHg</span>
                     </p>
                   </div>
                 </div>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Weight</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {healthStats.weight?.value ? `${healthStats.weight.value} kg` : '—'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Height</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {healthStats.height?.value ? `${healthStats.height.value} cm` : '—'}
+                    </p>
+                  </div>
+                </div>
+                {/* Editable controls in edit mode */}
+                {editing && (
+                  <div className="pt-4 border-t">
+                    <h3 className="font-semibold text-gray-800 mb-3">Edit Health Statistics</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Height (cm)</label>
+                        <input type="number" value={healthStats.height.value || ''} onChange={(e) => setHealthStats({ ...healthStats, height: { value: e.target.value ? Number(e.target.value) : undefined } })} className="w-full px-3 py-2 border rounded" placeholder="e.g. 175" />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600">Weight (kg)</label>
+                        <input type="number" value={healthStats.weight.value || ''} onChange={(e) => setHealthStats({ ...healthStats, weight: { value: e.target.value ? Number(e.target.value) : undefined } })} className="w-full px-3 py-2 border rounded" placeholder="e.g. 72" />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600">Heart Rate (bpm)</label>
+                        <input type="number" value={healthStats.heartRate.value || ''} onChange={(e) => setHealthStats({ ...healthStats, heartRate: { value: Number(e.target.value) } })} className="w-full px-3 py-2 border rounded" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-sm text-gray-600">Blood Pressure (mmHg)</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input type="number" value={healthStats.bloodPressure.systolic || ''} onChange={(e) => setHealthStats({ ...healthStats, bloodPressure: { ...healthStats.bloodPressure, systolic: Number(e.target.value) } })} className="w-full px-3 py-2 border rounded" placeholder="Systolic" />
+                          <input type="number" value={healthStats.bloodPressure.diastolic || ''} onChange={(e) => setHealthStats({ ...healthStats, bloodPressure: { ...healthStats.bloodPressure, diastolic: Number(e.target.value) } })} className="w-full px-3 py-2 border rounded" placeholder="Diastolic" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
