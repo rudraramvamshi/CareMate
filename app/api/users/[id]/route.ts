@@ -73,8 +73,30 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
     update.healthStats = sanitized
   }
+  // doctorProfile fields (if present) — sanitize simple fields
+  if (body?.doctorProfile) {
+    const dp = body.doctorProfile
+    const sanitizedDp: any = {}
+    if (dp.specialization !== undefined) sanitizedDp.specialization = String(dp.specialization)
+    if (dp.yearsExperience !== undefined) sanitizedDp.yearsExperience = Number(dp.yearsExperience)
+    if (dp.qualifications !== undefined && Array.isArray(dp.qualifications)) sanitizedDp.qualifications = dp.qualifications.map((q: any) => String(q))
+    if (dp.clinicAddress !== undefined) sanitizedDp.clinicAddress = String(dp.clinicAddress)
+    if (dp.bio !== undefined) sanitizedDp.bio = String(dp.bio)
+    if (dp.consultationFee !== undefined) sanitizedDp.consultationFee = Number(dp.consultationFee)
+    // availableSlots: validate basic shape if provided
+    if (dp.availableSlots !== undefined && Array.isArray(dp.availableSlots)) {
+      sanitizedDp.availableSlots = dp.availableSlots.map((s: any) => ({
+        dayOfWeek: Number(s.dayOfWeek),
+        startTime: String(s.startTime),
+        endTime: String(s.endTime),
+        slotDurationMins: Number(s.slotDurationMins),
+      }))
+    }
+    update.doctorProfile = sanitizedDp
+  }
   if (Object.keys(update).length > 0) {
-    console.log('[PUT /api/users/:id] auth.sub=', auth.sub, 'id=', id, 'update=', JSON.stringify(update))
+    // sanitize and log minimal info (avoid sensitive data in logs)
+    console.log('[PUT /api/users/:id] auth.sub=', auth.sub, 'id=', id, 'updateKeys=', Object.keys(update))
     await User.findByIdAndUpdate(id, { $set: update })
     const updated = await User.findById(id).select('-passwordHash')
     console.log('[PUT /api/users/:id] updated=', updated?._id)

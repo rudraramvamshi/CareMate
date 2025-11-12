@@ -41,7 +41,6 @@ export default function DoctorSidebar() {
         { id: 'appointments', name: 'Appointments', href: '/dashboard/doctor?tab=appointments', icon: Calendar },
         { id: 'slots', name: 'Slots', href: '/dashboard/doctor?tab=schedule', icon: Activity },
         { id: 'prescriptions', name: 'Prescriptions', href: '/dashboard/doctor?tab=prescriptions', icon: FileText },
-        { id: 'profile', name: 'Profile', href: '/dashboard/doctor?tab=profile', icon: Settings },
     ];
 
     const getInitials = (name) => {
@@ -140,7 +139,7 @@ export default function DoctorSidebar() {
                         {/* Action Buttons */}
                         <div className="space-y-2">
                             <Link
-                                href="/profile"
+                                href="/dashboard/doctor?tab=profile"
                                 className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                             >
                                 <Settings size={16} />
