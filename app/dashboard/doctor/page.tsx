@@ -17,7 +17,7 @@ export default function DoctorDashboardPage() {
   if (tab === 'schedule') Content = DoctorSchedulePanel
   else if (tab === 'appointments') Content = AppointmentsPanel
   else if (tab === 'prescriptions') Content = PrescriptionsPanel
-  else if (tab === 'profile') Content = DoctorProfilePanel
+  else if (tab === 'profile') Content = ProfilePanel
 
   return (
     <DashboardLayout>

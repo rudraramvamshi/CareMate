@@ -14,6 +14,8 @@ export function ProfilePanel() {
   const { data, mutate } = useSWR(userId ? `/api/users/${userId}` : null, (url) => jsonFetch(url))
   const [address, setAddress] = useState("")
   const [phone, setPhone] = useState("")
+  const [weight, setWeight] = useState<string>("") // kg
+  const [height, setHeight] = useState<string>("") // cm or meters
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState({ message: '', type: 'info', visible: false })
 
@@ -21,6 +23,9 @@ export function ProfilePanel() {
     if (data) {
       setAddress((data as any)?.profile?.address || "")
       setPhone((data as any)?.phone || "")
+      const hs = (data as any)?.healthStats || {}
+      if (hs.weight !== undefined && hs.weight !== null) setWeight(String(hs.weight))
+      if (hs.height !== undefined && hs.height !== null) setHeight(String(hs.height))
     }
   }, [data])
 
@@ -28,9 +33,32 @@ export function ProfilePanel() {
     setSaving(true)
     try {
       if (!userId) throw new Error('Not authenticated')
-      const payload = {
+      // compute BMI from weight (kg) and height (cm or meters)
+      const w = weight ? Number(String(weight).replace(',', '.')) : undefined
+      const hRaw = height ? Number(String(height).replace(',', '.')) : undefined
+      let hMeters: number | undefined = undefined
+      if (hRaw !== undefined && !Number.isNaN(hRaw)) {
+        if (hRaw > 3) {
+          // likely cm
+          hMeters = hRaw / 100
+        } else {
+          // meters
+          hMeters = hRaw
+        }
+      }
+      let bmi: number | undefined = undefined
+      if (w && hMeters && hMeters > 0) {
+        bmi = +(w / (hMeters * hMeters)).toFixed(1)
+      }
+
+      const payload: any = {
         phone,
-        profile: { ...((data as any)?.profile || {}), address }
+        profile: { ...((data as any)?.profile || {}), address },
+        healthStats: {
+          weight: w,
+          height: hRaw,
+          bmi
+        }
       }
       await fetch(`/api/users/${userId}`, {
         method: "PUT",
@@ -125,6 +153,48 @@ export function ProfilePanel() {
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Enter your address"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 mb-2">
+                <span>Weight (kg)</span>
+              </label>
+              <Input
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                placeholder="e.g. 70"
+                inputMode="decimal"
+              />
+            </div>
+            <div>
+              <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 mb-2">
+                <span>Height (cm or m)</span>
+              </label>
+              <Input
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                placeholder="e.g. 170 or 1.7"
+                inputMode="decimal"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-gray-700 mb-2 inline-block">Body Mass Index (BMI)</label>
+            <div className="text-gray-700">{(() => {
+              const w = weight ? Number(String(weight).replace(',', '.')) : undefined
+              const hRaw = height ? Number(String(height).replace(',', '.')) : undefined
+              let hMeters: number | undefined
+              if (hRaw !== undefined && !Number.isNaN(hRaw)) {
+                hMeters = hRaw > 3 ? hRaw / 100 : hRaw
+              }
+              if (w && hMeters && hMeters > 0) {
+                return (w / (hMeters * hMeters)).toFixed(1)
+              }
+              return '—'
+            })()}</div>
+            <p className="text-xs text-gray-500 mt-1">We calculate BMI from weight and height. Units are kg and cm (or meters). BMI is not stored as an editable field.</p>
           </div>
         </div>
 

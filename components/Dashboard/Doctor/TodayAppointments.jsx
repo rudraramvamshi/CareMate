@@ -16,7 +16,8 @@ export default function TodayAppointments() {
         fetch('/api/dashboard/doctor/today-appointments')
             .then(res => res.json())
             .then(data => {
-                setAppointments(data);
+                // Ensure completed appointments are not listed as today's active appointments
+                setAppointments((data || []).filter(a => a.status !== 'completed'));
                 setLoading(false);
             })
             .catch(err => {

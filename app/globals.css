@@ -119,7 +119,19 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Make interactive controls show pointer cursor for better affordance */
+  button:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  a[role="button"],
+  [role="button"]:not(:disabled),
+  .btn,
+  .clickable {
+    cursor: pointer;
   }
 }

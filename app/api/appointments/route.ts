@@ -14,12 +14,33 @@ export async function GET(req: NextRequest) {
   await connectDB()
   const { searchParams } = new URL(req.url)
   const status = searchParams.get("status") || undefined
+  const when = searchParams.get("when") || undefined // upcoming | past
+  const page = parseInt(searchParams.get("page") || "1", 10)
+  const pageSize = parseInt(searchParams.get("pageSize") || "20", 10)
+  const bufferMinutes = parseInt(process.env.NEXT_PUBLIC_APPT_BUFFER_MINUTES || "5", 10)
+
   const q: any = {}
   if (status) q.status = status
   if (auth.role === "user") q.patientId = auth.sub
   if (auth.role === "doctor") q.doctorId = auth.sub
-  const items = await Appointment.find(q).sort({ start: -1 }).limit(100)
-  return json(items)
+
+  // Date-based filtering for upcoming vs past
+  if (when) {
+    const now = new Date()
+    const bufferMs = bufferMinutes * 60 * 1000
+    if (when === "upcoming") {
+      // start after now - buffer
+      q.start = { $gte: new Date(now.getTime() - bufferMs) }
+      // exclude completed explicitly
+      q.status = { $ne: 'completed' }
+    } else if (when === "past") {
+      q.start = { $lt: new Date(now.getTime() - bufferMs) }
+    }
+  }
+
+  const total = await Appointment.countDocuments(q)
+  const items = await Appointment.find(q).sort({ start: -1 }).skip((page - 1) * pageSize).limit(pageSize)
+  return json({ items, total })
 }
 
 export async function POST(req: NextRequest) {

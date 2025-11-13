@@ -1,8 +1,8 @@
-'use client'
+"use client"
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
     Calendar,
@@ -17,7 +17,7 @@ import {
 export default function DoctorSidebar() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const activeTabParam = searchParams?.get('tab') || 'dashboard';
+    const activeTabParam = searchParams?.get('tab') || null
     const [user, setUser] = useState(null);
     // no initial loading flash — render profile section when user is available
     const [loading, setLoading] = useState(false);
@@ -35,6 +35,30 @@ export default function DoctorSidebar() {
             }
         })()
     }, []);
+
+    const router = useRouter()
+
+    // restore last-open tab for doctors if no tab param is present
+    useEffect(() => {
+        try {
+            const currentTab = searchParams?.get('tab')
+            if (!currentTab && typeof window !== 'undefined') {
+                const stored = window.localStorage.getItem('doctor_last_tab')
+                if (stored && stored !== 'dashboard') {
+                    router.replace(`/dashboard/doctor?tab=${stored}`)
+                    // show a small toast to indicate we restored the last tab
+                    setRestoredTab(stored)
+                    setShowRestoreToast(true)
+                    setTimeout(() => setShowRestoreToast(false), 3000)
+                }
+            }
+        } catch (err) {
+            // ignore
+        }
+    }, [searchParams, router])
+
+    const [restoredTab, setRestoredTab] = useState(null)
+    const [showRestoreToast, setShowRestoreToast] = useState(false)
 
     const navigation = [
         { id: 'dashboard', name: 'Dashboard', href: '/dashboard/doctor?tab=dashboard', icon: LayoutDashboard },
@@ -77,17 +101,25 @@ export default function DoctorSidebar() {
                         <p className="text-xs text-gray-500">Doctor Portal</p>
                     </div>
                 </div>
+                {showRestoreToast && (
+                    <div className="mt-3 p-2 bg-blue-50 text-blue-700 rounded text-sm">
+                        Restored last-open tab: <strong className="capitalize">{restoredTab}</strong>
+                    </div>
+                )}
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 py-4 overflow-y-auto">
                 {navigation.map((item) => {
-                    const isActive = activeTabParam === (item.id || 'dashboard');
+                    const isActive = (activeTabParam === (item.id || 'dashboard')) || (!activeTabParam && item.id === 'dashboard');
 
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
+                            onClick={() => {
+                                try { window.localStorage.setItem('doctor_last_tab', item.id) } catch (e) { }
+                            }}
                             className={`flex items-center space-x-3 px-6 py-3 transition-all ${isActive
                                 ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
                                 : 'text-gray-600 hover:bg-gray-50'

@@ -14,21 +14,24 @@ export async function GET() {
     try {
         await connectDB()
 
-        const doctorId = auth.userId
+        // JWT payload uses `sub` for the user id
+        const doctorId = (auth as any).sub
         const startOfToday = dayjs().startOf('day').toDate()
         const endOfToday = dayjs().endOf('day').toDate()
 
         // Get today's appointments with patient details
+        // Exclude completed appointments from 'today' list — completed items belong in history
         const appointments = await Appointment.find({
             doctorId,
-            start: { $gte: startOfToday, $lte: endOfToday }
+            start: { $gte: startOfToday, $lte: endOfToday },
+            status: { $ne: 'completed' }
         }).sort({ start: 1 }).lean()
 
         // Fetch patient details
         const appointmentsWithPatients = await Promise.all(
             appointments.map(async (apt) => {
                 try {
-                    const patient = await User.findById(apt.patientId).lean()
+                    const patient = await User.findById(apt.patientId).lean() as any
                     return {
                         ...apt,
                         patient: patient ? {
