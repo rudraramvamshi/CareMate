@@ -118,7 +118,7 @@ export default function HomePage() {
           <p className="text-xl text-blue-100 mb-8">Join thousands of patients who trust CareMate for their healthcare needs</p>
           <div className="flex items-center justify-center gap-4">
             <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-6">
-              <Link href="/auth/register">Create Account</Link>
+              <Link href="/auth/login?mode=signup">Create Account</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6 bg-transparent text-white border-white hover:bg-white hover:text-blue-600">
               <Link href="/doctors">Browse Doctors</Link>
